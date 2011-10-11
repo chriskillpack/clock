@@ -108,7 +108,7 @@
 
   // Convert viewport pixels into world units for a linear distance down the frustum.
   function pixelsToWorldUnits(camera, ndcWidth, ndcHeight, t) {
-    var v_start = unProject(camera, 0, 0, t);
+    var v_start = unProject(camera, -1, -1, t);
     var v_results = new THREE.Vector2(undefined, undefined);
     if (ndcWidth) {
       // Viewport transform:
@@ -117,8 +117,8 @@
       // xc = (2 * (xs - L) / (R - L)) - 1
       // For us currently L is 0 and R - L is viewportWidth,
       // xc = ((2 * xs) / viewportWidth) - 1
-      var xc = ((2 * ndcWidth) / viewportWidth) - 1;
-      var v_widthEnd = unProject(camera, xc, 0, t);
+      var xc = (2 * ndcWidth) / viewportWidth - 1;
+      var v_widthEnd = unProject(camera, xc, -1, t);
       v_results.x = v_widthEnd.distanceTo(v_start);
     }
     if (ndcHeight) {
@@ -126,8 +126,8 @@
       // ys = 0.5 * (yc + 1) * (T - B) + B
       // yc = (2 * (ys - B) / (T - B)) - 1
       //    = ((2 * ys) / viewportHeight) - 1
-      var yc = ((2 * ndcHeight) / viewportHeight) - 1;
-      var v_heightEnd = unProject(camera, 0, yc, t);
+      var yc = (2 * ndcHeight) / viewportHeight - 1;
+      var v_heightEnd = unProject(camera, -1, yc, t);
       v_results.y = v_heightEnd.distanceTo(v_start);
     }
 
