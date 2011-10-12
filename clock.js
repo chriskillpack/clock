@@ -10,6 +10,8 @@
   var camera, scene, renderer,
   geometry, material, mesh;
 
+  var container, stats;
+
   var viewportWidth, viewportHeight;
 
   var mouseX = 0, mouseY = 0;
@@ -26,6 +28,9 @@
   function init() {
     viewportWidth = window.innerWidth;
     viewportHeight = window.innerHeight;
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
 
     camera = new THREE.PerspectiveCamera(30, viewportWidth / viewportHeight, 10, 1000);
     camera.position.z = 200;
@@ -55,8 +60,12 @@
     renderer = new THREE.WebGLRenderer({clearColor: 0x000000, clearAlpha: 1, antialias: false});
     renderer.setSize(viewportWidth, viewportHeight);
     renderer.autoClear = false;
+    container.appendChild(renderer.domElement);
 
-    document.body.appendChild(renderer.domElement);
+    stats = new Stats();
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.top = '0px';
+    container.appendChild(stats.domElement);
 
     document.addEventListener('mousemove', onMouseMove, false);
   }
@@ -183,6 +192,7 @@
 
     requestAnimationFrame(animate);
     render();
+    stats.update();
   }
 
   function render() {
