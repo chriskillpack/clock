@@ -5,6 +5,8 @@
 // THREE does not expose the viewport so we have to track.
 
 (function() {
+  var IDEAL_CUBE_SIZE = 20;
+
   var camera, scene, renderer,
   geometry, material, mesh;
 
@@ -15,6 +17,8 @@
   var windowHalfX = window.innerWidth / 2;
   var windowHalfY = window.innerHeight / 2;
 
+  var gridWidth = 0, gridHeight = 0;
+
   init();
   animate();
 
@@ -23,16 +27,11 @@
     viewportWidth = window.innerWidth;
     viewportHeight = window.innerHeight;
 
-    camera = new THREE.PerspectiveCamera(75, viewportWidth / viewportHeight, 10, 1000);
+    camera = new THREE.PerspectiveCamera(30, viewportWidth / viewportHeight, 10, 1000);
     camera.position.z = 200;
     scene = new THREE.Scene();
 
-    geometry = new THREE.CubeGeometry(50, 50, 50);
-    material = new THREE.MeshBasicMaterial({color: 0xff0000, wireframe: true});
-
-    mesh = new THREE.Mesh(geometry, material);
-    mesh.position.x = -50;
-    scene.add(mesh);
+    buildGrid();
 
     linePoints = new THREE.Geometry();
     var colors = [], color = new THREE.Color(0xffffff);
@@ -60,6 +59,37 @@
     document.body.appendChild(renderer.domElement);
 
     document.addEventListener('mousemove', onMouseMove, false);
+  }
+
+  function buildGrid() {
+    var t = 0.2;
+
+    var topLeft = unProject(camera, -1, 1, t);
+    var topRight = unProject(camera, 1, 1, t);
+    var bottomLeft = unProject(camera, -1, -1, t);
+
+    gridWidth = Math.ceil(topLeft.distanceTo(topRight) / IDEAL_CUBE_SIZE);
+    gridHeight = Math.ceil(topLeft.distanceTo(bottomLeft) / IDEAL_CUBE_SIZE);
+    var cube_width = topLeft.distanceTo(topRight) / gridWidth;
+    var cube_height = topLeft.distanceTo(bottomLeft) / gridHeight;
+    var cube_depth = (cube_width + cube_height) / 2;
+
+    // Compute the origin of the grid
+    var v_gridOrigin = new THREE.Vector3().copy(topLeft);
+    v_gridOrigin.subSelf(new THREE.Vector3(-cube_width/2, cube_height/2, cube_depth/2));
+
+    var geometry = new THREE.CubeGeometry(cube_width, cube_height, cube_depth);
+    var material = new THREE.MeshBasicMaterial({color: 0xff0000, wireframe: true});
+    for (var i = 0; i < gridHeight; i++) {
+      for (var j = 0; j < gridWidth; j++) {
+        var v_cubePosition = new THREE.Vector3(j * cube_width, i * -cube_height, 0);
+        v_cubePosition.addSelf(v_gridOrigin);
+
+        var mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(v_cubePosition);
+        scene.add(mesh);
+      }
+    }
   }
 
   // Project a point in world space into NDC space.
@@ -141,7 +171,12 @@
 
   function animate() {
     var time = new Date().getTime() * 0.0005;
-    scene.objects[0].rotation.y = time;
+    for (var i = 0; i < gridHeight ; i++) {
+      for (var j = 0; j < gridWidth ; j++) {
+        var index = i * gridWidth + j;
+        scene.objects[index].rotation.y += Math.sin(time + (index / 7.16)) * (Math.PI / 80);
+      }
+    }
 
     camera.position.x += (mouseX - camera.position.x);
     camera.position.y += (mouseY - camera.position.y);
