@@ -88,7 +88,7 @@
     v_gridOrigin.subSelf(new THREE.Vector3(-cube_width/2, cube_height/2, cube_depth/2));
 
     var geometry = new THREE.CubeGeometry(cube_width, cube_height, cube_depth);
-    var material = new THREE.MeshBasicMaterial({color: 0xff0000, wireframe: true});
+    var material = new THREE.MeshPhongMaterial({ambient: 0x101010, color: 0xffffff, specular: 0xffffff, shininess: 50, shading: THREE.SmoothShading});
     for (var i = 0; i < gridHeight; i++) {
       for (var j = 0; j < gridWidth; j++) {
         var v_cubePosition = new THREE.Vector3(j * cube_width, i * -cube_height, 0);
@@ -99,6 +99,10 @@
         scene.add(mesh);
       }
     }
+
+    light = new THREE.PointLight(0x60d040, 1, 200);
+    light.position.z = 100;
+    scene.add(light);
   }
 
   // Project a point in world space into NDC space.
