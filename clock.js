@@ -5,19 +5,22 @@
 // THREE does not expose the viewport so we have to track.
 
 (function() {
-  var IDEAL_CUBE_SIZE = 20;
+  // Monkey-patch Vector3 with some more useful functions.
+  THREE.Vector3.add = function(a,b) {
+    return new THREE.Vector3(a.x+b.x, a.y+b.y, a.z+b.z);
+  };
+  THREE.Vector3.sub = function(a,b) {
+    return new THREE.Vector3(a.x-b.x, a.y-b.y, a.z-b.z);
+  };
 
-  var camera, scene, renderer,
-  geometry, material, mesh;
+  var IDEAL_CUBE_SIZE = 12;
 
+  var camera, scene, renderer;
   var container, stats;
 
   var viewportWidth, viewportHeight;
 
   var mouseX = 0, mouseY = 0;
-
-  var windowHalfX = window.innerWidth / 2;
-  var windowHalfY = window.innerHeight / 2;
 
   var gridWidth = 0, gridHeight = 0;
 
@@ -84,17 +87,15 @@
     var cube_depth = (cube_width + cube_height) / 2;
 
     // Compute the origin of the grid
-    var v_gridOrigin = new THREE.Vector3().copy(topLeft);
-    v_gridOrigin.subSelf(new THREE.Vector3(-cube_width/2, cube_height/2, cube_depth/2));
-
-    var geometry = new THREE.CubeGeometry(cube_width, cube_height, cube_depth);
-    var material = new THREE.MeshPhongMaterial({ambient: 0x101010, color: 0xffffff, specular: 0xffffff, shininess: 50, shading: THREE.SmoothShading});
+    var v_gridOrigin = THREE.Vector3.sub(topLeft, new THREE.Vector3(-cube_width/2, cube_height/2, cube_depth/2));
+    var material_on = new THREE.MeshPhongMaterial({ambient: 0x101010, color: 0xffffff, specular: 0xffffff, shininess: 50, shading: THREE.SmoothShading});
+    var material_off = new THREE.MeshPhongMaterial({ambient: 0x101010, color: 0x0000ff, specular: 0xffffff, shininess: 50, shading: THREE.SmoothShading});
+    var geometry = new THREE.CubeGeometry(cube_width, cube_height, cube_depth, undefined, undefined, undefined, [material_off, material_off, material_on, material_on, material_on, material_on]);
     for (var i = 0; i < gridHeight; i++) {
       for (var j = 0; j < gridWidth; j++) {
-        var v_cubePosition = new THREE.Vector3(j * cube_width, i * -cube_height, 0);
-        v_cubePosition.addSelf(v_gridOrigin);
+        var v_cubePosition = THREE.Vector3.add(v_gridOrigin, new THREE.Vector3(j * cube_width, i * -cube_height, 0));
 
-        var mesh = new THREE.Mesh(geometry, material);
+        var mesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial());
         mesh.position.copy(v_cubePosition);
         scene.add(mesh);
       }
@@ -139,8 +140,7 @@
     var v_farWorld = ndcToWorld.multiplyVector4(v_farPlane);
 
     // Linearly interpolate between the two points.
-    var v_dir = new THREE.Vector3();
-    v_dir.sub(v_farWorld, v_nearWorld).multiplyScalar(t).addSelf(v_nearWorld);
+    var v_dir = THREE.Vector3.sub(v_farWorld, v_nearWorld).multiplyScalar(t).addSelf(v_nearWorld);
     return v_dir;
 
     // zc (z in NDC space) is:
@@ -178,8 +178,8 @@
   }
 
   function onMouseMove(event) {
-    mouseX = event.clientX - windowHalfX;
-    mouseY = event.clientY - windowHalfY;
+    mouseX = event.clientX - viewportWidth / 2;
+    mouseY = event.clientY - viewportHeight / 2;
   }
 
   function animate() {
