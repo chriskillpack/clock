@@ -23,6 +23,79 @@
   var mouseX = 0, mouseY = 0;
 
   var gridWidth = 0, gridHeight = 0;
+  var gridState = [];
+
+  var digit_one = {
+    width: 5, height: 5,
+    pixels: [0,0,0,0,1,
+             0,0,0,0,1,
+             0,0,0,0,1,
+             0,0,0,0,1,
+             0,0,0,0,1]};
+  var digit_two = {
+    width: 5, height: 5,
+    pixels: [1,1,1,1,1,
+             0,0,0,0,1,
+             1,1,1,1,1,
+             1,0,0,0,0,
+             1,1,1,1,1]};
+  var digit_three = {
+    width: 5, height: 5,
+    pixels: [1,1,1,1,1,
+             0,0,0,0,1,
+             0,0,1,1,1,
+             0,0,0,0,1,
+             1,1,1,1,1]};
+  var digit_four = {
+    width: 5, height: 5,
+    pixels: [1,0,0,0,1,
+             1,0,0,0,1,
+             1,1,1,1,1,
+             0,0,0,0,1,
+             0,0,0,0,1]};
+  var digit_five = {
+    width: 5, height: 5,
+    pixels: [1,1,1,1,1,
+             1,0,0,0,0,
+             1,1,1,1,1,
+             0,0,0,0,1,
+             1,1,1,1,1]};
+  var digit_six = {
+    width: 5, height: 5,
+    pixels: [1,1,1,1,1,
+             1,0,0,0,0,
+             1,1,1,1,1,
+             1,0,0,0,1,
+             1,1,1,1,1]};
+  var digit_seven = {
+    width: 5, height: 5,
+    pixels: [1,1,1,1,1,
+             0,0,0,0,1,
+             0,0,0,1,0,
+             0,0,1,0,0,
+             0,0,1,0,0]};
+  var digit_eight = {
+    width: 5, height: 5,
+    pixels: [0,1,1,1,0,
+             1,0,0,0,1,
+             0,1,1,1,0,
+             1,0,0,0,1,
+             0,1,1,1,0]};
+  var digit_nine = {
+    width: 5, height: 5,
+    pixels: [0,1,1,1,0,
+             1,0,0,0,1,
+             0,1,1,1,1,
+             0,0,0,0,1,
+             0,0,0,0,1]};
+  var digit_zero = {
+    width: 5, height: 5,
+    pixels: [0,1,1,1,0,
+             1,0,0,0,1,
+             1,0,0,0,1,
+             1,0,0,0,1,
+             0,1,1,1,0]};
+  var digits = [digit_zero, digit_one, digit_two, digit_three, digit_four, digit_five, digit_six, digit_seven, digit_eight, digit_nine];
 
   init();
   animate();
@@ -98,6 +171,9 @@
         var mesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial());
         mesh.position.copy(v_cubePosition);
         scene.add(mesh);
+
+        var index = i * gridWidth + j;
+        gridState[index] = 0;
       }
     }
 
@@ -182,12 +258,35 @@
     mouseY = event.clientY - viewportHeight / 2;
   }
 
+  function setDigit(xPosition, yPosition, digit, on) {
+    for (var i = 0; i < digit.width; i++) {
+      for (var j = 0; j < digit.height; j++) {
+        var gridIndex = (yPosition + i) * gridWidth + j + xPosition;
+        var digitIndex = i * digit.width + j;
+        if (digit.pixels[digitIndex]) {
+          gridState[gridIndex] = on;
+        }
+      }
+    }
+  }
+
+  var oldSeconds = null;
+
   function animate() {
-    var time = new Date().getTime() * 0.0005;
+    var now = new Date();
+    var seconds = now.getSeconds() % 10;
+    if (seconds != oldSeconds) {
+      if (oldSeconds != null) {
+        setDigit(4, 2, digits[oldSeconds], false);
+      }
+      setDigit(4, 2, digits[seconds], true);
+      oldSeconds = seconds;
+    }
+
     for (var i = 0; i < gridHeight ; i++) {
       for (var j = 0; j < gridWidth ; j++) {
         var index = i * gridWidth + j;
-        scene.objects[index].rotation.y += Math.sin(time + (index / 7.16)) * (Math.PI / 80);
+        scene.objects[index].rotation.y = (gridState[index] == 0) ? 0 : Math.PI/2;
       }
     }
 
