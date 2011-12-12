@@ -13,7 +13,7 @@
     return new THREE.Vector3(a.x-b.x, a.y-b.y, a.z-b.z);
   };
 
-  var IDEAL_CUBE_SIZE = 12;
+  var IDEAL_CUBE_SIZE = 6;
 
   var camera, scene, renderer;
   var container, stats;
@@ -26,75 +26,95 @@
   var gridState = [];
 
   var digit_one = {
-    width: 5, height: 5,
-    pixels: [0,0,0,0,1,
-             0,0,0,0,1,
-             0,0,0,0,1,
-             0,0,0,0,1,
-             0,0,0,0,1]};
+    width: 4, height: 7,
+    pixels: [0,1,0,0,
+             1,1,0,0,
+             0,1,0,0,
+             0,1,0,0,
+             0,1,0,0,
+             0,1,0,0,
+             1,1,1,0]};
   var digit_two = {
-    width: 5, height: 5,
-    pixels: [1,1,1,1,1,
-             0,0,0,0,1,
-             1,1,1,1,1,
-             1,0,0,0,0,
-             1,1,1,1,1]};
+    width: 4, height: 7,
+    pixels: [1,1,1,0,
+             0,0,0,1,
+             0,0,0,1,
+             0,1,1,1,
+             1,0,0,0,
+             1,0,0,0,
+             1,1,1,1]};
   var digit_three = {
-    width: 5, height: 5,
-    pixels: [1,1,1,1,1,
-             0,0,0,0,1,
-             0,0,1,1,1,
-             0,0,0,0,1,
-             1,1,1,1,1]};
+    width: 4, height: 7,
+    pixels: [1,1,1,0,
+             0,0,0,1,
+             0,0,0,1,
+             0,1,1,0,
+             0,0,0,1,
+             0,0,0,1,
+             1,1,1,0]};
   var digit_four = {
-    width: 5, height: 5,
-    pixels: [1,0,0,0,1,
-             1,0,0,0,1,
-             1,1,1,1,1,
-             0,0,0,0,1,
-             0,0,0,0,1]};
+    width: 4, height: 7,
+    pixels: [1,0,0,1,
+             1,0,0,1,
+             1,0,0,1,
+             0,1,1,1,
+             0,0,0,1,
+             0,0,0,1,
+             0,0,0,1]};
   var digit_five = {
-    width: 5, height: 5,
-    pixels: [1,1,1,1,1,
-             1,0,0,0,0,
-             1,1,1,1,1,
-             0,0,0,0,1,
-             1,1,1,1,1]};
+    width: 4, height: 7,
+    pixels: [1,1,1,1,
+             1,0,0,0,
+             1,0,0,0,
+             1,1,1,0,
+             0,0,0,1,
+             0,0,0,1,
+             1,1,1,0]};
   var digit_six = {
-    width: 5, height: 5,
-    pixels: [1,1,1,1,1,
-             1,0,0,0,0,
-             1,1,1,1,1,
-             1,0,0,0,1,
-             1,1,1,1,1]};
+    width: 4, height: 7,
+    pixels: [0,1,1,0,
+             1,0,0,0,
+             1,0,0,0,
+             1,1,1,0,
+             1,0,0,1,
+             1,0,0,1,
+             0,1,1,0]};
   var digit_seven = {
-    width: 5, height: 5,
-    pixels: [1,1,1,1,1,
-             0,0,0,0,1,
-             0,0,0,1,0,
-             0,0,1,0,0,
-             0,0,1,0,0]};
+    width: 4, height: 7,
+    pixels: [1,1,1,1,
+             0,0,0,1,
+             0,0,0,1,
+             0,0,1,0,
+             0,1,0,0,
+             0,1,0,0,
+             0,1,0,0]};
   var digit_eight = {
-    width: 5, height: 5,
-    pixels: [0,1,1,1,0,
-             1,0,0,0,1,
-             0,1,1,1,0,
-             1,0,0,0,1,
-             0,1,1,1,0]};
+    width: 4, height: 7,
+    pixels: [0,1,1,0,
+             1,0,0,1,
+             1,0,0,1,
+             0,1,1,0,
+             1,0,0,1,
+             1,0,0,1,
+             0,1,1,0]};
   var digit_nine = {
-    width: 5, height: 5,
-    pixels: [0,1,1,1,0,
-             1,0,0,0,1,
-             0,1,1,1,1,
-             0,0,0,0,1,
-             0,0,0,0,1]};
+    width: 4, height: 7,
+    pixels: [0,1,1,0,
+             1,0,0,1,
+             1,0,0,1,
+             0,1,1,1,
+             0,0,0,1,
+             0,0,0,1,
+             0,0,0,1]};
   var digit_zero = {
-    width: 5, height: 5,
-    pixels: [0,1,1,1,0,
-             1,0,0,0,1,
-             1,0,0,0,1,
-             1,0,0,0,1,
-             0,1,1,1,0]};
+    width: 4, height: 7,
+    pixels: [0,1,1,0,
+             1,0,0,1,
+             1,0,0,1,
+             1,0,0,1,
+             1,0,0,1,
+             1,0,0,1,
+             0,1,1,0]};
   var digits = [digit_zero, digit_one, digit_two, digit_three, digit_four, digit_five, digit_six, digit_seven, digit_eight, digit_nine];
 
   init();
@@ -132,6 +152,8 @@
     lineMaterial = new THREE.LineBasicMaterial({color: 0xa0a0a0, opacity: 1, linewidth: 3});
     line = new THREE.Line(linePoints, lineMaterial);
     scene.add(line);
+
+    setDigit(4, 2, digits[5], true);
 
     renderer = new THREE.WebGLRenderer({clearColor: 0x000000, clearAlpha: 1, antialias: false});
     renderer.setSize(viewportWidth, viewportHeight);
@@ -259,8 +281,8 @@
   }
 
   function setDigit(xPosition, yPosition, digit, on) {
-    for (var i = 0; i < digit.width; i++) {
-      for (var j = 0; j < digit.height; j++) {
+    for (var i = 0; i < digit.height; i++) {
+      for (var j = 0; j < digit.width; j++) {
         var gridIndex = (yPosition + i) * gridWidth + j + xPosition;
         var digitIndex = i * digit.width + j;
         if (digit.pixels[digitIndex]) {
