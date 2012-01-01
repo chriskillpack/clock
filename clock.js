@@ -4,6 +4,13 @@
 // camera.projectionMatrix is the Projection matrix
 // THREE does not expose the viewport so we have to track.
 
+// Front face on cube is face index 4.
+// Left face is face index 1.
+// Right face is face index 0.
+// UV indices: 0 is top-left, 1 is bottom-left, 2 is bottom-right, 3 is top-right.
+
+// Grid is 16 x 9, but leave 1 row border top and bottom, so we have 7 cubes to work with.
+// Each letter is at most 92 pixels high. So 92 / 7 = 13 pixels.
 (function() {
   // Monkey-patch Vector3 with some more useful functions.
   THREE.Vector3.add = function(a,b) {
@@ -13,7 +20,9 @@
     return new THREE.Vector3(a.x-b.x, a.y-b.y, a.z-b.z);
   };
 
-  var IDEAL_CUBE_SIZE = 6;
+  var IDEAL_CUBE_SIZE = 13;  // Produces grid 16 x 9.
+  var TEXTURE_WIDTH = 256;
+  var TEXTURE_HEIGHT = 512;
 
   var camera, scene, renderer;
   var container, stats;
@@ -25,100 +34,31 @@
   var gridWidth = 0, gridHeight = 0;
   var gridState = [];
 
-  var digit_one = {
-    width: 4, height: 7,
-    pixels: [0,1,0,0,
-             1,1,0,0,
-             0,1,0,0,
-             0,1,0,0,
-             0,1,0,0,
-             0,1,0,0,
-             1,1,1,0]};
-  var digit_two = {
-    width: 4, height: 7,
-    pixels: [1,1,1,0,
-             0,0,0,1,
-             0,0,0,1,
-             0,1,1,1,
-             1,0,0,0,
-             1,0,0,0,
-             1,1,1,1]};
-  var digit_three = {
-    width: 4, height: 7,
-    pixels: [1,1,1,0,
-             0,0,0,1,
-             0,0,0,1,
-             0,1,1,0,
-             0,0,0,1,
-             0,0,0,1,
-             1,1,1,0]};
-  var digit_four = {
-    width: 4, height: 7,
-    pixels: [1,0,0,1,
-             1,0,0,1,
-             1,0,0,1,
-             0,1,1,1,
-             0,0,0,1,
-             0,0,0,1,
-             0,0,0,1]};
-  var digit_five = {
-    width: 4, height: 7,
-    pixels: [1,1,1,1,
-             1,0,0,0,
-             1,0,0,0,
-             1,1,1,0,
-             0,0,0,1,
-             0,0,0,1,
-             1,1,1,0]};
-  var digit_six = {
-    width: 4, height: 7,
-    pixels: [0,1,1,0,
-             1,0,0,0,
-             1,0,0,0,
-             1,1,1,0,
-             1,0,0,1,
-             1,0,0,1,
-             0,1,1,0]};
-  var digit_seven = {
-    width: 4, height: 7,
-    pixels: [1,1,1,1,
-             0,0,0,1,
-             0,0,0,1,
-             0,0,1,0,
-             0,1,0,0,
-             0,1,0,0,
-             0,1,0,0]};
-  var digit_eight = {
-    width: 4, height: 7,
-    pixels: [0,1,1,0,
-             1,0,0,1,
-             1,0,0,1,
-             0,1,1,0,
-             1,0,0,1,
-             1,0,0,1,
-             0,1,1,0]};
-  var digit_nine = {
-    width: 4, height: 7,
-    pixels: [0,1,1,0,
-             1,0,0,1,
-             1,0,0,1,
-             0,1,1,1,
-             0,0,0,1,
-             0,0,0,1,
-             0,0,0,1]};
-  var digit_zero = {
-    width: 4, height: 7,
-    pixels: [0,1,1,0,
-             1,0,0,1,
-             1,0,0,1,
-             1,0,0,1,
-             1,0,0,1,
-             1,0,0,1,
-             0,1,1,0]};
-  var digits = [digit_zero, digit_one, digit_two, digit_three, digit_four, digit_five, digit_six, digit_seven, digit_eight, digit_nine];
+  var digitData = [
+    {width: 3, height: 4, u_offset: 0, v_offset: 12},  // 0
+    {width: 2, height: 4, u_offset: 0, v_offset:  0},  // 1
+    {width: 3, height: 4, u_offset: 2, v_offset:  0},  // 2
+    {width: 3, height: 4, u_offset: 5, v_offset:  0},  // 3
+    {width: 3, height: 4, u_offset: 0, v_offset:  4},  // 4
+    {width: 3, height: 4, u_offset: 3, v_offset:  4},  // 5
+    {width: 3, height: 4, u_offset: 6, v_offset:  4},  // 6
+    {width: 3, height: 4, u_offset: 0, v_offset:  8},  // 7
+    {width: 3, height: 4, u_offset: 3, v_offset:  8},  // 8
+    {width: 3, height: 4, u_offset: 6, v_offset:  8},  // 9
+    {width: 1, height: 4, u_offset: 3, v_offset: 12}   // : (10)
+  ];
+  function digitInfo(digit) {
+    if (digit == ':') {
+      return digitData[10];
+    }
+    return digitData[parseInt(digit)];
+  }
 
   init();
   animate();
+
+  function tu(u) { return u / TEXTURE_WIDTH; }
+  function tv(v) { return v / TEXTURE_HEIGHT; }
 
   // In world coordinates: +X is right, +Y is up, +Z is towards the camera
   function init() {
@@ -132,7 +72,7 @@
     camera.position.z = 200;
     scene = new THREE.Scene();
 
-    buildGrid();
+    buildCubeGrid(THREE.ImageUtils.loadTexture("numbers.jpg"));
 
     linePoints = new THREE.Geometry();
     var colors = [], color = new THREE.Color(0xffffff);
@@ -153,8 +93,6 @@
     line = new THREE.Line(linePoints, lineMaterial);
     scene.add(line);
 
-    setDigit(4, 2, digits[5], true);
-
     renderer = new THREE.WebGLRenderer({clearColor: 0x000000, clearAlpha: 1, antialias: false});
     renderer.setSize(viewportWidth, viewportHeight);
     renderer.autoClear = false;
@@ -168,7 +106,35 @@
     document.addEventListener('mousemove', onMouseMove, false);
   }
 
-  function buildGrid() {
+  function renderString(string, x, y) {
+    for (var i = 0; i < string.length; i++) {
+      renderDigit(string[i], x, y);
+      x += digitInfo(string[i]).width;
+    }
+  }
+
+  function renderDigit(digit, x, y) {
+    var info = digitInfo(digit);
+    var width = info.width;
+    var height = info.height;
+    var u_offset = info.u_offset;
+    var v_offset = info.v_offset;
+
+    var f = 4, w = 26, h = 26;
+    var faceUvs;
+
+    for (var i = 0; i < height ; i++) {
+      for (var j = 0; j < width ; j++) {
+        faceUvs = scene.objects[x+j+(y+i)*16].geometry.faceVertexUvs[0];
+        faceUvs[f][0].u = tu((u_offset+j) * w); faceUvs[f][0].v = tv((v_offset+i) * h);
+        faceUvs[f][1].u = tu((u_offset+j) * w); faceUvs[f][1].v = tv((v_offset+i+1) * h);
+        faceUvs[f][2].u = tu((u_offset+j+1) * w); faceUvs[f][2].v = tv((v_offset+i+1) * h);
+        faceUvs[f][3].u = tu((u_offset+j+1) * w); faceUvs[f][3].v = tv((v_offset+i) * h);
+      }
+    }
+  }
+
+  function buildCubeGrid(digitsTexture) {
     var t = 0.2;
 
     var topLeft = unProject(camera, -1, 1, t);
@@ -183,11 +149,11 @@
 
     // Compute the origin of the grid
     var v_gridOrigin = THREE.Vector3.sub(topLeft, new THREE.Vector3(-cube_width/2, cube_height/2, cube_depth/2));
-    var material_on = new THREE.MeshPhongMaterial({ambient: 0x101010, color: 0xffffff, specular: 0xffffff, shininess: 50, shading: THREE.SmoothShading});
-    var material_off = new THREE.MeshPhongMaterial({ambient: 0x101010, color: 0x0000ff, specular: 0xffffff, shininess: 50, shading: THREE.SmoothShading});
-    var geometry = new THREE.CubeGeometry(cube_width, cube_height, cube_depth, undefined, undefined, undefined, [material_off, material_off, material_on, material_on, material_on, material_on]);
+    var material_on = new THREE.MeshPhongMaterial({ambient: 0x101010, color: 0xffffff, specular: 0xffffff, shininess: 50, shading: THREE.SmoothShading, map: digitsTexture});
+    var material_off = new THREE.MeshPhongMaterial({ambient: 0x101010, color: 0x2020ff, specular: 0xffffff, shininess: 50, shading: THREE.SmoothShading, map: digitsTexture});
     for (var i = 0; i < gridHeight; i++) {
       for (var j = 0; j < gridWidth; j++) {
+        var geometry = new THREE.CubeGeometry(cube_width, cube_height, cube_depth, undefined, undefined, undefined, [material_off, material_off, material_on, material_on, material_on, material_on]);
         var v_cubePosition = THREE.Vector3.add(v_gridOrigin, new THREE.Vector3(j * cube_width, i * -cube_height, 0));
 
         var mesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial());
@@ -199,6 +165,7 @@
       }
     }
 
+    renderString('12:34', 3, 2);
     light = new THREE.PointLight(0x60d040, 1, 200);
     light.position.z = 100;
     scene.add(light);
@@ -280,28 +247,12 @@
     mouseY = event.clientY - viewportHeight / 2;
   }
 
-  function setDigit(xPosition, yPosition, digit, on) {
-    for (var i = 0; i < digit.height; i++) {
-      for (var j = 0; j < digit.width; j++) {
-        var gridIndex = (yPosition + i) * gridWidth + j + xPosition;
-        var digitIndex = i * digit.width + j;
-        if (digit.pixels[digitIndex]) {
-          gridState[gridIndex] = on;
-        }
-      }
-    }
-  }
-
   var oldSeconds = null;
 
   function animate() {
     var now = new Date();
     var seconds = now.getSeconds() % 10;
     if (seconds != oldSeconds) {
-      if (oldSeconds != null) {
-        setDigit(4, 2, digits[oldSeconds], false);
-      }
-      setDigit(4, 2, digits[seconds], true);
       oldSeconds = seconds;
     }
 
