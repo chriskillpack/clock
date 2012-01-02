@@ -9,7 +9,7 @@
 // Right face is face index 0.
 // UV indices: 0 is top-left, 1 is bottom-left, 2 is bottom-right, 3 is top-right.
 
-// Grid is 16 x 9, but leave 1 row border top and bottom, so we have 7 cubes to work with.
+// Grid is 16 x 9, but leave 1 row border all around, so we have 14x7 cubes to work with.
 // Each letter is at most 92 pixels high. So 92 / 7 = 13 pixels.
 (function() {
   // Monkey-patch Vector3 with some more useful functions.
@@ -20,9 +20,14 @@
     return new THREE.Vector3(a.x-b.x, a.y-b.y, a.z-b.z);
   };
 
-  var IDEAL_CUBE_SIZE = 13;  // Produces grid 16 x 9.
+  var GRID_WIDTH = 16, GRID_HEIGHT = 9;
+
   var TEXTURE_WIDTH = 256;
   var TEXTURE_HEIGHT = 512;
+
+  var FRONT_FACE_UV_INDEX = 4;
+  var LEFT_FACE_UV_INDEX = 1;
+  var RIGHT_FACE_UV_INDEX = 0;
 
   var camera, scene, renderer;
   var container, stats;
@@ -31,21 +36,20 @@
 
   var mouseX = 0, mouseY = 0;
 
-  var gridWidth = 0, gridHeight = 0;
   var gridState = [];
 
   var digitData = [
-    {width: 3, height: 4, u_offset: 0, v_offset: 12},  // 0
-    {width: 2, height: 4, u_offset: 0, v_offset:  0},  // 1
-    {width: 3, height: 4, u_offset: 2, v_offset:  0},  // 2
-    {width: 3, height: 4, u_offset: 5, v_offset:  0},  // 3
-    {width: 3, height: 4, u_offset: 0, v_offset:  4},  // 4
-    {width: 3, height: 4, u_offset: 3, v_offset:  4},  // 5
-    {width: 3, height: 4, u_offset: 6, v_offset:  4},  // 6
-    {width: 3, height: 4, u_offset: 0, v_offset:  8},  // 7
-    {width: 3, height: 4, u_offset: 3, v_offset:  8},  // 8
-    {width: 3, height: 4, u_offset: 6, v_offset:  8},  // 9
-    {width: 1, height: 4, u_offset: 3, v_offset: 12}   // : (10)
+    {width: 3, height: 5, u_offset: 0, v_offset: 15},  // 0
+    {width: 2, height: 5, u_offset: 0, v_offset:  0},  // 1
+    {width: 3, height: 5, u_offset: 2, v_offset:  0},  // 2
+    {width: 3, height: 5, u_offset: 5, v_offset:  0},  // 3
+    {width: 3, height: 5, u_offset: 0, v_offset:  5},  // 4
+    {width: 3, height: 5, u_offset: 3, v_offset:  5},  // 5
+    {width: 3, height: 5, u_offset: 6, v_offset:  5},  // 6
+    {width: 3, height: 5, u_offset: 0, v_offset: 10},  // 7
+    {width: 3, height: 5, u_offset: 3, v_offset: 10},  // 8
+    {width: 3, height: 5, u_offset: 6, v_offset: 10},  // 9
+    {width: 1, height: 5, u_offset: 3, v_offset: 15}   // : (10)
   ];
   function digitInfo(digit) {
     if (digit == ':') {
@@ -72,7 +76,7 @@
     camera.position.z = 200;
     scene = new THREE.Scene();
 
-    buildCubeGrid(THREE.ImageUtils.loadTexture("numbers.jpg"));
+    buildCubeGrid(THREE.ImageUtils.loadTexture("numbers.png"));
 
     linePoints = new THREE.Geometry();
     var colors = [], color = new THREE.Color(0xffffff);
@@ -106,30 +110,30 @@
     document.addEventListener('mousemove', onMouseMove, false);
   }
 
-  function renderString(string, x, y) {
+  function renderString(string, faceIndex, x, y) {
     for (var i = 0; i < string.length; i++) {
-      renderDigit(string[i], x, y);
+      renderDigit(string[i], faceIndex, x, y);
       x += digitInfo(string[i]).width;
     }
   }
 
-  function renderDigit(digit, x, y) {
+  function renderDigit(digit, faceIndex, x, y) {
     var info = digitInfo(digit);
     var width = info.width;
     var height = info.height;
     var u_offset = info.u_offset;
     var v_offset = info.v_offset;
 
-    var f = 4, w = 26, h = 26;
+    var w = 30, h = 24;  // Grid cell texel dimensions.
     var faceUvs;
 
     for (var i = 0; i < height ; i++) {
       for (var j = 0; j < width ; j++) {
         faceUvs = scene.objects[x+j+(y+i)*16].geometry.faceVertexUvs[0];
-        faceUvs[f][0].u = tu((u_offset+j) * w); faceUvs[f][0].v = tv((v_offset+i) * h);
-        faceUvs[f][1].u = tu((u_offset+j) * w); faceUvs[f][1].v = tv((v_offset+i+1) * h);
-        faceUvs[f][2].u = tu((u_offset+j+1) * w); faceUvs[f][2].v = tv((v_offset+i+1) * h);
-        faceUvs[f][3].u = tu((u_offset+j+1) * w); faceUvs[f][3].v = tv((v_offset+i) * h);
+        faceUvs[faceIndex][0].u = tu((u_offset+j) * w); faceUvs[faceIndex][0].v = tv((v_offset+i) * h);
+        faceUvs[faceIndex][1].u = tu((u_offset+j) * w); faceUvs[faceIndex][1].v = tv((v_offset+i+1) * h);
+        faceUvs[faceIndex][2].u = tu((u_offset+j+1) * w); faceUvs[faceIndex][2].v = tv((v_offset+i+1) * h);
+        faceUvs[faceIndex][3].u = tu((u_offset+j+1) * w); faceUvs[faceIndex][3].v = tv((v_offset+i) * h);
       }
     }
   }
@@ -141,18 +145,16 @@
     var topRight = unProject(camera, 1, 1, t);
     var bottomLeft = unProject(camera, -1, -1, t);
 
-    gridWidth = Math.ceil(topLeft.distanceTo(topRight) / IDEAL_CUBE_SIZE);
-    gridHeight = Math.ceil(topLeft.distanceTo(bottomLeft) / IDEAL_CUBE_SIZE);
-    var cube_width = topLeft.distanceTo(topRight) / gridWidth;
-    var cube_height = topLeft.distanceTo(bottomLeft) / gridHeight;
+    var cube_width = topLeft.distanceTo(topRight) / GRID_WIDTH;
+    var cube_height = topLeft.distanceTo(bottomLeft) / GRID_HEIGHT;
     var cube_depth = (cube_width + cube_height) / 2;
 
     // Compute the origin of the grid
     var v_gridOrigin = THREE.Vector3.sub(topLeft, new THREE.Vector3(-cube_width/2, cube_height/2, cube_depth/2));
     var material_on = new THREE.MeshPhongMaterial({ambient: 0x101010, color: 0xffffff, specular: 0xffffff, shininess: 50, shading: THREE.SmoothShading, map: digitsTexture});
     var material_off = new THREE.MeshPhongMaterial({ambient: 0x101010, color: 0x2020ff, specular: 0xffffff, shininess: 50, shading: THREE.SmoothShading, map: digitsTexture});
-    for (var i = 0; i < gridHeight; i++) {
-      for (var j = 0; j < gridWidth; j++) {
+    for (var i = 0; i < GRID_HEIGHT; i++) {
+      for (var j = 0; j < GRID_WIDTH; j++) {
         var geometry = new THREE.CubeGeometry(cube_width, cube_height, cube_depth, undefined, undefined, undefined, [material_off, material_off, material_on, material_on, material_on, material_on]);
         var v_cubePosition = THREE.Vector3.add(v_gridOrigin, new THREE.Vector3(j * cube_width, i * -cube_height, 0));
 
@@ -160,12 +162,12 @@
         mesh.position.copy(v_cubePosition);
         scene.add(mesh);
 
-        var index = i * gridWidth + j;
+        var index = i * GRID_WIDTH + j;
         gridState[index] = 0;
       }
     }
 
-    renderString('12:34', 3, 2);
+    renderString('14:00', FRONT_FACE_UV_INDEX, 2, 2);
     light = new THREE.PointLight(0x60d040, 1, 200);
     light.position.z = 100;
     scene.add(light);
@@ -256,9 +258,9 @@
       oldSeconds = seconds;
     }
 
-    for (var i = 0; i < gridHeight ; i++) {
-      for (var j = 0; j < gridWidth ; j++) {
-        var index = i * gridWidth + j;
+    for (var i = 0; i < GRID_HEIGHT ; i++) {
+      for (var j = 0; j < GRID_WIDTH ; j++) {
+        var index = i * GRID_WIDTH + j;
         scene.objects[index].rotation.y = (gridState[index] == 0) ? 0 : Math.PI/2;
       }
     }
